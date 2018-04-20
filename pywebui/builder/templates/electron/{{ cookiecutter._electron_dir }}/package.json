@@ -1,0 +1,19 @@
+{
+  "name": "{{ cookiecutter.project_slug }}",
+  "version": "{{ cookiecutter.version }}",
+  "description": "{{ cookiecutter.project_description }}",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "electron": "electron index.js",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "author": "{{ cookiecutter.author }}",
+  "license": "{{ cookiecutter.license }}",
+  "devDependencies": {
+    "electron": "^1.8.4",
+    "electron-builder": "^20.9.2"
+  }
+}

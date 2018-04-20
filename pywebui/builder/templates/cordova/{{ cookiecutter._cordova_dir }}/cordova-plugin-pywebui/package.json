@@ -1,0 +1,21 @@
+{
+  "name": "cordova-plugin-pywebui",
+  "version": "0.1.0",
+  "description": "Cordova PyWebUI Plugin",
+  "cordova": {
+    "id": "cordova-plugin-pywebui",
+    "platforms": [
+      "android"
+    ]
+  },
+  "keywords": [
+    "cordova",
+    "python",
+    "pywebui",
+    "ecosystem:cordova",
+    "cordova-android"
+  ],
+  "author": "Kevin Howell",
+  "license": "TODO choose",
+  "private": true
+}

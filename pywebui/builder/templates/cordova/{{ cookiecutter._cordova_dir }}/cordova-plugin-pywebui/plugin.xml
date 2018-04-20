@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
+        id="cordova-plugin-pywebui" version="0.1.0">
+    <name>PyWebUI</name>
+    <description>Cordova PyWebUI Plugin</description>
+    <license>MIT</license>
+    <keywords>cordova,python,pywebui</keywords>
+    <js-module src="www/pywebui.js" name="pywebui">
+        <clobbers target="pywebui" />
+    </js-module>
+    <!-- TODO ios -->
+    <platform name="android">
+        <config-file parent="/*" target="res/xml/config.xml">
+            <feature name="PyWebUI">
+                <param name="android-package" value="io.pywebui.cordova.plugin.PyWebUI"/>
+                <param name="onload" value="true"/>
+            </feature>
+        </config-file>
+        <config-file target="AndroidManifest.xml" parent="/manifest/application">
+            <service android:name="io.pywebui.ServicePywebui" android:process=":service_pywebui"/>
+        </config-file>
+        <source-file src="src/android/PyWebUI.java" target-dir="src/io/pywebui/cordova/plugin"/>
+
+        <source-file src="p4a/dist_armeabi-v7a/src/main/java/org/kamranzafar/jtar/Octal.java" target-dir="src/org/kamranzafar/jtar"/>
+        <source-file src="p4a/dist_armeabi-v7a/src/main/java/org/kamranzafar/jtar/TarConstants.java" target-dir="src/org/kamranzafar/jtar"/>
+        <source-file src="p4a/dist_armeabi-v7a/src/main/java/org/kamranzafar/jtar/TarEntry.java" target-dir="src/org/kamranzafar/jtar"/>
+        <source-file src="p4a/dist_armeabi-v7a/src/main/java/org/kamranzafar/jtar/TarHeader.java" target-dir="src/org/kamranzafar/jtar"/>
+        <source-file src="p4a/dist_armeabi-v7a/src/main/java/org/kamranzafar/jtar/TarInputStream.java" target-dir="src/org/kamranzafar/jtar"/>
+        <source-file src="p4a/dist_armeabi-v7a/src/main/java/org/kamranzafar/jtar/TarOutputStream.java" target-dir="src/org/kamranzafar/jtar"/>
+        <source-file src="p4a/dist_armeabi-v7a/src/main/java/org/kamranzafar/jtar/TarUtils.java" target-dir="src/org/kamranzafar/jtar"/>
+
+        <source-file src="p4a/dist_armeabi-v7a/src/main/java/org/kivy/android/concurrency/PythonLock.java" target-dir="src/org/kivy/android/concurrency"/>
+        <source-file src="p4a/dist_armeabi-v7a/src/main/java/org/kivy/android/concurrency/PythonEvent.java" target-dir="src/org/kivy/android/concurrency"/>
+        <source-file src="p4a/dist_armeabi-v7a/src/main/java/org/kivy/android/launcher/ProjectAdapter.java" target-dir="src/org/kivy/android/launcher"/>
+        <source-file src="p4a/dist_armeabi-v7a/src/main/java/org/kivy/android/launcher/ProjectChooser.java" target-dir="src/org/kivy/android/launcher"/>
+        <source-file src="p4a/dist_armeabi-v7a/src/main/java/org/kivy/android/launcher/Project.java" target-dir="src/org/kivy/android/launcher"/>
+        <source-file src="p4a/dist_armeabi-v7a/src/main/java/org/kivy/android/GenericBroadcastReceiverCallback.java" target-dir="src/org/kivy/android"/>
+        <source-file src="p4a/dist_armeabi-v7a/src/main/java/org/kivy/android/GenericBroadcastReceiver.java" target-dir="src/org/kivy/android"/>
+        <source-file src="p4a/dist_armeabi-v7a/src/main/java/org/kivy/android/PythonActivity.java" target-dir="src/org/kivy/android"/>
+        <source-file src="p4a/dist_armeabi-v7a/src/main/java/org/kivy/android/PythonService.java" target-dir="src/org/kivy/android"/>
+        <source-file src="p4a/dist_armeabi-v7a/src/main/java/org/kivy/android/PythonUtil.java" target-dir="src/org/kivy/android"/>
+
+        <source-file src="p4a/dist_armeabi-v7a/src/main/java/org/renpy/android/AssetExtract.java" target-dir="src/org/renpy/android"/>
+        <source-file src="p4a/dist_armeabi-v7a/src/main/java/org/renpy/android/Hardware.java" target-dir="src/org/renpy/android"/>
+        <source-file src="p4a/dist_armeabi-v7a/src/main/java/org/renpy/android/PythonActivity.java" target-dir="src/org/renpy/android"/>
+        <source-file src="p4a/dist_armeabi-v7a/src/main/java/org/renpy/android/PythonService.java" target-dir="src/org/renpy/android"/>
+        <source-file src="p4a/dist_armeabi-v7a/src/main/java/org/renpy/android/ResourceManager.java" target-dir="src/org/renpy/android"/>
+
+        <source-file src="p4a/dist_armeabi-v7a/src/main/java/org/libsdl/app/SDLActivity.java" target-dir="src/org/libsdl/app"/>
+
+
+        <source-file src="p4a/dist_armeabi-v7a/src/main/java/io/pywebui/ServicePywebui.java" target-dir="src/io/pywebui"/>
+
+        <resource-file src="p4a/dist_armeabi-v7a/src/main/assets/private.mp3" target="assets/private.mp3"/>
+
+        <hook type="before_plugin_install" src="scripts/p4a_setup.js"/>
+
+        <source-file src="p4a/dist_armeabi-v7a/libs/armeabi-v7a" target-dir="app/src/main/jniLibs"/>
+        <source-file src="p4a/dist_x86/libs/x86" target-dir="app/src/main/jniLibs"/>
+    </platform>
+</plugin>
+

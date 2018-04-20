@@ -1,0 +1,15 @@
+{
+  "project_name": "PyWebUI Demo",
+  "project_slug": "{{ cookiecutter.project_name.lower().replace(' ', '_').replace('-', '_') }}",
+  "project_description": "PyWebUI Demo",
+  "package": "io.pywebui.demo",
+  "license": "MIT",
+  "version": "0.1.0",
+  "author": "Anonymous",
+  "author_email": "webmaster@example.com",
+  "author_url": "https://example.com",
+  "_cordova_dir": "cordova",
+  "_electron_dir": "electron",
+  "_flask_dir": "flask",
+  "_app_dir": "app"
+}

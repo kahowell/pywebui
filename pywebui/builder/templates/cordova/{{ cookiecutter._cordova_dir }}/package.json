@@ -1,0 +1,25 @@
+{
+    "name": "{{ cookiecutter.package }}",
+    "displayName": "{{ cookiecutter.project_name }}",
+    "version": "{{ cookiecutter.version }}",
+    "description": "{{ cookiecutter.project_description }}",
+    "private": true,
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "{{ cookiecutter.author }}",
+    "license": "{{ cookiecutter.license }}",
+    "dependencies": {
+        "cordova-android": "^7.0.0",
+        "cordova-plugin-whitelist": "^1.3.3"
+    },
+    "cordova": {
+        "plugins": {
+            "cordova-plugin-whitelist": {}
+        },
+        "platforms": [
+            "android"
+        ]
+    }
+}

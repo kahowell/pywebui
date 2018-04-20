@@ -1,0 +1,8 @@
+--requirements python2
+--service pywebui:pywebui_service.py
+--requirements python2,sdl2,six,file:///home/thurston/code/pywebui/bridge
+--package io.pywebui
+--private .
+--name pywebui
+--version 0.1.0
+--bootstrap sdl2
