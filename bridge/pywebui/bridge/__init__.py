@@ -1,5 +1,7 @@
 from importlib import import_module as _import_module
 import six
+import sys
+import traceback
 from json import dumps, loads
 from uuid import uuid4
 
@@ -16,7 +18,7 @@ class Bridge:
             '__bridge': self,
         }
         self._object_references = {
-            self: '__bridge',
+            id(self): '__bridge',
         }
         self._wrap_functions = {}
         self.input = input
@@ -27,7 +29,7 @@ class Bridge:
         if name not in self._objects:
             module = _import_module(name)
             self._objects[name] = module
-            self._object_references[module] = name
+            self._object_references[id(module)] = name
         return self._objects[name]
 
     def register_wrap_function(self, wrap_type, wrap_function):
@@ -51,16 +53,18 @@ class Bridge:
             return getattr(_object, attr_name)
         return _object
 
-    def wrap_object(self, value):
+    def wrap_object(self, value, force_reference=False):
         wrap_function = self._wrap_functions.get(type(value), None)
-        if wrap_function:
+        if wrap_function and not force_reference:
             return wrap_function(value)
 
-        if value not in self._object_references:
-            self._object_references[value] = str(uuid4())
+        if id(value) not in self._object_references:
+            reference = str(uuid4())
+            self._object_references[id(value)] = reference
+            self._objects[reference] = value
         return {
             'type': 'pythonobject',
-            'reference': self._object_references[value],
+            'reference': self._object_references[id(value)],
         }
 
     def unwrap_object(self, value):
@@ -69,8 +73,8 @@ class Bridge:
         return value
 
     def release(self, value):
-        reference = self._object_references[value]
-        del self._object_references[value]
+        reference = self._object_references[id(value)]
+        del self._object_references[id(value)]
         del self._objects[reference]
 
     def run(self):
@@ -105,7 +109,9 @@ class Bridge:
             method = request.get('method', None)
             if method is None:
                 raise JSONRPCError(-32600, 'Invalid Request')
-            params = request.get('params', [])
+            params = request.get('params', {})
+            args = params.get('args', [])
+            force_reference = params.get('force_reference', False)
 
             try:
                 method = self.resolve_reference(method)
@@ -113,16 +119,18 @@ class Bridge:
                 raise JSONRPCError(-32601, 'Method not found', data=str(e))
 
             try:
-                response['result'] = method(*params)
+                response['result'] = method(*args)
             except Exception as e:
                 raise JSONRPCError(-32000, 'General error', data=str(e))
 
             try:
+                if force_reference:
+                    response['result'] = self.wrap_object(response['result'], True)
                 self.output.write(dumps(response, default=self.wrap_object))
                 self.output.write('\n')
                 self.output.flush()
             except TypeError as e:
-                raise JSONRPCError(-32603, 'Error encoding response', data=str(e))
+                raise JSONRPCError(-32603, 'Error encoding response', data=str(traceback.format_tb(sys.exc_info()[-1])))
 
         except JSONRPCError as e:
             if 'result' in response.keys():
@@ -137,6 +145,10 @@ class Bridge:
             self.output.write('\n')
             self.output.flush()
 
-    def data(self, reference, name):
+    def getattr(self, reference, name):
         obj = self._objects[reference]
         return getattr(obj, name)
+
+    def setattr(self, reference, name, value):
+        obj = self._objects[reference]
+        setattr(obj, name, value)

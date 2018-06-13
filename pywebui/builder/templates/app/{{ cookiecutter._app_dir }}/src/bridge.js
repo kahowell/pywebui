@@ -93,22 +93,41 @@ class ObjectWrapper {
     const request = {
       "jsonrpc": "2.0",
       "method": `${this.reference}.${method_name}`,
+      "params": {},
     }
     if (typeof(args) !== 'undefined') {
-        request.params = args
+        request.params.args = args
     }
-    const promise = this.rpc.sendRequest(request)
-    return await promise
+    const result = await this.rpc.sendRequest(request)
+    if (result.hasOwnProperty('type') && result.type === 'pythonobject') {
+      return new ObjectWrapper(this.rpc, result.reference)
+    }
+    else {
+      return result
+    }
   }
 
-  async data(attribute_name) {
+  async getattr(attribute_name, force_reference) {
     const request = {
       "jsonrpc": "2.0",
-      "method": '__bridge.data',
-      'params': [this.reference, attribute_name],
+      "method": '__bridge.getattr',
+      'params': {
+        'args': [this.reference, attribute_name],
+	'force_reference': force_reference,
+      },
     }
-    const promise = this.rpc.sendRequest(request)
-    return await promise
+    return await this.rpc.sendRequest(request)
+  }
+
+  async setattr(attribute_name, value) {
+    const request = {
+      "jsonrpc": "2.0",
+      "method": '__bridge.setattr',
+      'params': {
+        'args': [this.reference, attribute_name, value],
+      },
+    }
+    await this.rpc.sendRequest(request)
   }
 }
 
@@ -138,7 +157,9 @@ export default class Bridge {
     this.rpc.sendRequest({
       "jsonrpc": "2.0",
       "method": "__bridge.import_module",
-      "params": [name],
+      "params": {
+        "args": [name],
+      },
     })
     return new ObjectWrapper(this.rpc, name);
   }
@@ -147,7 +168,9 @@ export default class Bridge {
     this.rpc.sendRequest({
       "jsonrpc": "2.0",
       "method": "__bridge.register_wrap_function",
-      "params": [type, func],
+      "params": {
+        "args": [type, func],
+      },
     })
   }
 
