@@ -1,12 +1,14 @@
 import argparse
 import json
 import os
+import shutil
 import sys
 from subprocess import Popen
 
 from cookiecutter.main import cookiecutter
 from cookiecutter.generate import generate_context
 from cookiecutter.prompt import prompt_for_config
+import yaml
 
 TEMPLATES_PATH = os.path.join(os.path.dirname(__file__), 'templates')
 
@@ -14,6 +16,8 @@ def create_project(args, _):
     context = generate_context(os.path.join(TEMPLATES_PATH, 'app', 'cookiecutter.json'))
     config = prompt_for_config(context)
     config['_app_dir'] = args.output_directory
+    with open('.pywebui.yaml', 'w') as config_output:
+        config_output.write(yaml.safe_dump(config, default_flow_style=False, encoding='utf-8'))
     cookiecutter(os.path.join(TEMPLATES_PATH, 'app'), no_input=True, extra_context=config)
     os.chdir(args.output_directory)
     if not args.without_electron:
@@ -22,12 +26,33 @@ def create_project(args, _):
         cookiecutter(os.path.join(TEMPLATES_PATH, 'cordova'), no_input=True, extra_context=config)
     if not args.without_flask:
         cookiecutter(os.path.join(TEMPLATES_PATH, 'flask'), no_input=True, extra_context=config)
+    shell('npm install {} --no-save'.format(os.path.join(os.path.dirname(__file__), 'js')))
+
+def _read_config():
+    with open('.pywebui.yaml', 'r') as config_input:
+        return yaml.load(config_input.read())
+
+def update_project(args, _):
+    config = _read_config()
+    output_directory = args.output_directory or config['_app_dir']
+    os.chdir(output_directory)
+    for backend in args.remove:
+        shutil.rmtree(backend)
+    for backend in args.add:
+        cookiecutter(os.path.join(TEMPLATES_PATH, backend), no_input=True, extra_context=config)
+    print('Ensuring bridge JS up-to-date...')
+    shell('npm install {} --no-save'.format(os.path.join(os.path.dirname(__file__), 'js')))
 
 def shell(command):
     print('Command: ' + command)
     Popen(command, shell=True).wait()
 
 def build_project(args, _):
+    try:
+        config = _read_config()
+        os.chdir(config['_app_dir'])
+    except IOError:
+        pass
     build_electron = False
     build_cordova = False
     if args.electron:
@@ -72,10 +97,19 @@ def main():
     create_command.add_argument('--without-flask', help='include flask app', action='store_true')
     create_command.set_defaults(func=create_project)
 
+    update_command = commands.add_parser('update', help='update a PyWebUI project')
+    update_command.add_argument('--output-directory', help='PyWebUI sub-project directory (default: detect)')
+    update_command.add_argument('--add', nargs='+', help='add one or more backends', default=[])
+    update_command.add_argument('--remove', '--rm', nargs='+', help='remove one or more backends', default=[])
+    update_command.set_defaults(func=update_project)
+
     build_command = commands.add_parser('build', help='perform all builds for a PyWebUI project')
     build_command.add_argument('--electron', help='build for electron specifically', action='store_true')
     build_command.add_argument('--cordova', help='build for cordova specifically', action='store_true')
     build_command.set_defaults(func=build_project)
+
+    help_command = commands.add_parser('help', help='show this help')
+    help_command.set_defaults(func=lambda args, extra_args: parser.print_help())
 
     args, remaining_args = parser.parse_known_args()
     args.func(args, remaining_args)

@@ -1,4 +1,4 @@
-import Bridge from './bridge'
+import Bridge from 'pywebui-bridge'
 
 const bridge = new Bridge()
 bridge.on_ready(function() {
@@ -8,10 +8,7 @@ bridge.on_ready(function() {
 
   bridge.register_wrap_function('uuid.UUID', 'six.text_type')
 
-  console.log(sys.data('version'));
-  sys.data('version').then(version => {
-    console.log('test')
-    console.log('got version!', version)
+  sys.getattr('version').then(version => {
     document.getElementById('python-version').innerHTML = version;
   })
 

@@ -28,6 +28,7 @@ setup(
     install_requires=[
         'cookiecutter',
         'pywebui.bridge',
+        'PyYAML',
     ],
     zip_safe=False,
 )
