@@ -16,6 +16,6 @@
     "cordova-android"
   ],
   "author": "Kevin Howell",
-  "license": "TODO choose",
+  "license": "MIT",
   "private": true
 }
