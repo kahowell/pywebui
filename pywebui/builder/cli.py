@@ -43,9 +43,19 @@ def update_project(args, _):
     print('Ensuring bridge JS up-to-date...')
     shell('npm install {} --no-save'.format(os.path.join(os.path.dirname(__file__), 'js')))
 
-def shell(command):
+def shell(command, chdir=None, hide_output=False):
     print('Command: ' + command)
-    Popen(command, shell=True).wait()
+    if chdir:
+        original_dir = os.getcwd()
+        os.chdir(chdir)
+    if hide_output:
+        print('<output omitted>')
+        with open(os.devnull, 'w') as output:
+            Popen(command, shell=True, stdout=output)
+    else:
+        Popen(command, shell=True).wait()
+    if chdir:
+        os.chdir(original_dir)
 
 def _get_bridge_requirement():
     try:
@@ -58,25 +68,29 @@ def _get_bridge_requirement():
                 else:
                     # track down file where dev version of bridge is stored
                     import pywebui.bridge
-                    return os.path.join(os.path.dirname(pywebui.bridge.__file__), '..', '..')
+                    return os.path.abspath(os.path.join(os.path.dirname(pywebui.bridge.__file__), '..', '..'))
     except:
         pass
     return 'pywebui.bridge'
 
-def get_requirements():
+def get_requirements(separator=' ', use_requirements_file=True):
     if os.path.exists('requirements.txt'):
         print('Using requirements.txt for dependencies')
-        requirements = '-r requirements.txt .'
         requirements_path = 'requirements.txt'
     else:
         print('Using dependencies determined from setup.py')
         shell('python setup.py egg_info')
         package_name = check_output('python setup.py --name', shell=True).strip()
-        requirements = '.'
         requirements_path = '{}.egg-info/requires.txt'.format(package_name)
+    if use_requirements_file:
+        requirements = '-r {}'.format(requirements_path)
     with open(requirements_path, 'r') as requirements_file:
-        if 'pywebui.bridge' not in requirements_file.read():
-            requirements = ' '.join([requirements, _get_bridge_requirement()])
+        lines = requirements_file.readlines()
+        if not use_requirements_file:
+            requirements = separator.join(line.strip() for line in lines if 'pywebui.bridge' not in line)
+        if len([line for line in lines if line.startswith('pywebui.bridge')]) == 0:
+            requirements = separator.join([requirements, _get_bridge_requirement()])
+    requirements = separator.join([os.getcwd(), requirements])
     return requirements
 
 def build_project(args, _):
@@ -118,6 +132,20 @@ def build_project(args, _):
         os.chdir('..')
     print('Done. Build results are in their various folders.')
 
+def build_p4a(args, extra_args):
+    p4a_src_dir = os.path.join(args.p4a_dir, 'src')
+    requirements = ','.join(['python2', 'sdl2', get_requirements(separator=',', use_requirements_file=False)])
+    ARCHES = ['x86', 'armeabi-v7a']
+    for arch in ARCHES:
+        dist_name = 'pywebui-{}'.format(arch)
+        if os.path.exists(os.path.join(args.p4a_dir, 'dist_{}'.format(arch))):
+            print('Distribution already built for {}... Not rebuilding'.format(arch))
+            continue
+        print('Building python-for-android distribution for {}...'.format(arch))
+        shell('python-for-android delete_dist {}'.format(dist_name), hide_output=True)
+        shell('python-for-android apk --dist-name {dist_name} --arch {arch} --requirements {requirements}'.format(dist_name=dist_name, arch=arch, requirements=requirements), chdir=p4a_src_dir)
+        shell('python-for-android export_dist --dist-name {dist_name} --arch {arch} dist_{arch} --requirements {requirements}'.format(dist_name=dist_name, arch=arch, requirements=requirements), chdir=args.p4a_dir)
+
 def main():
     parser = argparse.ArgumentParser(description='create/build a Python App with a Web UI-based GUI')
     commands = parser.add_subparsers(title='commands')
@@ -139,6 +167,10 @@ def main():
     build_command.add_argument('--electron', help='build for electron specifically', action='store_true')
     build_command.add_argument('--cordova', help='build for cordova specifically', action='store_true')
     build_command.set_defaults(func=build_project)
+
+    build_p4a_command = commands.add_parser('build-p4a', help='build a python-for-android distribution (called internally)')
+    build_p4a_command.add_argument('--p4a-dir', help='directory for the p4a directory')
+    build_p4a_command.set_defaults(func=build_p4a)
 
     help_command = commands.add_parser('help', help='show this help')
     help_command.set_defaults(func=lambda args, extra_args: parser.print_help())
