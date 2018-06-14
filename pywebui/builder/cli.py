@@ -3,7 +3,7 @@ import json
 import os
 import shutil
 import sys
-from subprocess import Popen
+from subprocess import Popen, check_output
 
 from cookiecutter.main import cookiecutter
 from cookiecutter.generate import generate_context
@@ -47,12 +47,44 @@ def shell(command):
     print('Command: ' + command)
     Popen(command, shell=True).wait()
 
-def build_project(args, _):
+def _get_bridge_requirement():
     try:
-        config = _read_config()
-        os.chdir(config['_app_dir'])
-    except IOError:
+        installed_deps = check_output('pip freeze', shell=True).strip()
+        lines = installed_deps.split('\n')
+        for line in lines:
+            if 'pywebui.bridge' in line:
+                if '-e ' not in line:
+                    return line
+                else:
+                    # track down file where dev version of bridge is stored
+                    import pywebui.bridge
+                    return os.path.join(os.path.dirname(pywebui.bridge.__file__), '..', '..')
+    except:
         pass
+    return 'pywebui.bridge'
+
+def get_requirements():
+    if os.path.exists('requirements.txt'):
+        print('Using requirements.txt for dependencies')
+        requirements = '-r requirements.txt .'
+        requirements_path = 'requirements.txt'
+    else:
+        print('Using dependencies determined from setup.py')
+        shell('python setup.py egg_info')
+        package_name = check_output('python setup.py --name', shell=True).strip()
+        requirements = '.'
+        requirements_path = '{}.egg-info/requires.txt'.format(package_name)
+    with open(requirements_path, 'r') as requirements_file:
+        if 'pywebui.bridge' not in requirements_file.read():
+            requirements = ' '.join([requirements, _get_bridge_requirement()])
+    return requirements
+
+def build_project(args, _):
+    config = _read_config()
+    if os.path.exists(os.path.join(config['_app_dir'], 'electron')):
+        requirements_args = get_requirements()
+        shell('pex --disable-cache {} -m pywebui.bridge -o {}'.format(requirements_args, os.path.join(config['_app_dir'], 'electron', 'app.pex')))
+    os.chdir(config['_app_dir'])
     build_electron = False
     build_cordova = False
     if args.electron:

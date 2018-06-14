@@ -26,9 +26,10 @@ setup(
         ],
     },
     install_requires=[
-        'cookiecutter',
-        'pywebui.bridge',
         'PyYAML',
+        'cookiecutter',
+        'pex',
+        'pywebui.bridge',
     ],
     zip_safe=False,
 )

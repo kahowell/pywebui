@@ -15,5 +15,10 @@
   "devDependencies": {
     "electron": "^1.8.4",
     "electron-builder": "^20.9.2"
+  },
+  "build": {
+    "extraFiles": [
+      "app.pex"
+    ]
   }
 }
