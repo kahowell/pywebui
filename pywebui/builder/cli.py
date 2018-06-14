@@ -29,6 +29,9 @@ def create_project(args, _):
     shell('npm install {} --no-save'.format(os.path.join(os.path.dirname(__file__), 'js')))
 
 def _read_config():
+    if not os.path.exists('.pywebui.yaml'):
+        print('No .pywebui.yaml detected. Is this directory a PyWebUI project?')
+        sys.exit(1)
     with open('.pywebui.yaml', 'r') as config_input:
         return yaml.load(config_input.read())
 
@@ -57,7 +60,7 @@ def shell(command, chdir=None, hide_output=False):
     if chdir:
         os.chdir(original_dir)
 
-def _get_bridge_requirement():
+def _get_bridge_requirement(file_protocol=''):
     try:
         installed_deps = check_output('pip freeze', shell=True).strip()
         lines = installed_deps.split('\n')
@@ -68,12 +71,15 @@ def _get_bridge_requirement():
                 else:
                     # track down file where dev version of bridge is stored
                     import pywebui.bridge
-                    return os.path.abspath(os.path.join(os.path.dirname(pywebui.bridge.__file__), '..', '..'))
+                    return '{}{}'.format(file_protocol, os.path.abspath(os.path.join(os.path.dirname(pywebui.bridge.__file__), '..', '..')))
     except:
         pass
     return 'pywebui.bridge'
 
-def get_requirements(separator=' ', use_requirements_file=True):
+def get_requirements(separator=' ', use_requirements_file=True, file_protocol=''):
+    original_dir = os.getcwd()
+    while not os.path.exists('.pywebui.yaml') and os.path.abspath('..') != os.path.abspath(os.getcwd()):
+        os.chdir('..')
     if os.path.exists('requirements.txt'):
         print('Using requirements.txt for dependencies')
         requirements_path = 'requirements.txt'
@@ -90,51 +96,60 @@ def get_requirements(separator=' ', use_requirements_file=True):
             requirements = separator.join(line.strip() for line in lines if 'pywebui.bridge' not in line)
         if len([line for line in lines if line.startswith('pywebui.bridge')]) == 0:
             requirements = separator.join([requirements, _get_bridge_requirement()])
-    requirements = separator.join([os.getcwd(), requirements])
+    requirements = separator.join(['{}{}'.format(file_protocol, os.getcwd()), requirements])
+    os.chdir(original_dir)
     return requirements
 
-def build_project(args, _):
-    config = _read_config()
-    if os.path.exists(os.path.join(config['_app_dir'], 'electron')):
-        requirements_args = get_requirements()
-        shell('pex --disable-cache {} -m pywebui.bridge -o {}'.format(requirements_args, os.path.join(config['_app_dir'], 'electron', 'app.pex')))
+def _build_cordova(config):
+    original_path = os.getcwd()
     os.chdir(config['_app_dir'])
-    build_electron = False
-    build_cordova = False
-    if args.electron:
-        build_electron = True
-    if args.cordova:
-        build_cordova = True
-    if not args.electron and not args.cordova:
-        build_electron = True
-        build_cordova = True
-    if not os.path.exists('package.json'):
-        print('No package.json detected. Is this directory a PyWebUI project?')
-        sys.exit(1)
+    print('Performing cordova build from cordova dir...')
+    os.chdir('cordova')
+    if not os.path.exists('node_modules'):
+        shell('npm install')
+    shell('cordova prepare')
+    shell('cordova plugin add ./cordova-plugin-pywebui')
+    shell('cordova build')
+    os.chdir(original_path)
+
+def _build_electron(config):
+    original_path = os.getcwd()
+    requirements_args = get_requirements()
+    shell('pex --disable-cache {} -m pywebui.bridge -o {}'.format(requirements_args, os.path.join(config['_app_dir'], 'electron', 'app.pex')))
+    print('Performing electron build from electron dir...')
+    os.chdir(config['_app_dir'])
+    os.chdir('electron')
+    if not os.path.exists('node_modules'):
+        shell('npm install')
+    shell('npm run dist')
+    os.chdir(original_path)
+
+def build_project(args, _):
+    original_dir = os.getcwd()
+    config = _read_config()
+    build_electron = args.electron or False
+    build_cordova = args.cordova or False
+    if not build_cordova and not build_electron:
+        build_electron = os.path.exists('electron')
+        build_cordova = os.path.exists('cordova')
+
+    os.chdir(config['_app_dir'])
     if not os.path.exists('node_modules'):
         shell('npm install')
     shell('npm run webpack')
-    if os.path.exists('electron') and build_electron:
-        print('Performing electron build from electron dir...')
-        os.chdir('electron')
-        if not os.path.exists('node_modules'):
-            shell('npm install')
-        shell('npm run dist')
-        os.chdir('..')
-    if os.path.exists('cordova') and build_cordova:
-        print('Performing cordova build from cordova dir...')
-        os.chdir('cordova')
-        if not os.path.exists('node_modules'):
-            shell('npm install')
-        shell('cordova prepare')
-        shell('cordova plugin add ./cordova-plugin-pywebui')
-        shell('cordova build')
-        os.chdir('..')
+    os.chdir(original_dir)
+
+    if build_electron:
+        _build_electron(config)
+
+    if build_cordova:
+        _build_cordova(config)
+        
     print('Done. Build results are in their various folders.')
 
 def build_p4a(args, extra_args):
     p4a_src_dir = os.path.join(args.p4a_dir, 'src')
-    requirements = ','.join(['python2', 'sdl2', get_requirements(separator=',', use_requirements_file=False)])
+    requirements = ','.join(['python2', 'sdl2', 'six', get_requirements(separator=',', use_requirements_file=False, file_protocol='file://')])
     ARCHES = ['x86', 'armeabi-v7a']
     for arch in ARCHES:
         dist_name = 'pywebui-{}'.format(arch)

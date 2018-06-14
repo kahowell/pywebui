@@ -16,7 +16,7 @@ class ElectronRpcTransport {
         }
     });
   }
-  async sendRequest(data) {
+  sendRequest(data) {
     data.id = this.id++;
     return new Promise((resolve, reject) => {
       this.pending[data.id] = [resolve, reject]
@@ -33,7 +33,7 @@ class RestRpcTransport {
     this.id = 0
   }
 
-  async sendRequest(data) {
+  sendRequest(data) {
     data.id = this.id++;
     return new Promise((resolve, reject) => {
       const request = new XMLHttpRequest()
@@ -60,11 +60,11 @@ class CordovaRpcTransport {
     this.id = 0
   }
 
-  async sendRequest(data) {
+  sendRequest(data) {
     data.id = this.id++;
     console.log('doing a cordova RPC call!')
     console.log(window.cordova_pywebui_call)
-    const promise = new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
       window.cordova_pywebui_call(data, resolve, reject);
     }).then(responseText => {
       const response = JSON.parse(responseText);
@@ -75,7 +75,6 @@ class CordovaRpcTransport {
         return response.result
       }
     })
-    return await promise
   }
 
   on_ready(func) {
@@ -89,25 +88,26 @@ class ObjectWrapper {
     this.reference = reference
   }
 
-  async call(method_name, args) {
+  call(method_name, args) {
     const request = {
       "jsonrpc": "2.0",
       "method": `${this.reference}.${method_name}`,
       "params": {},
     }
     if (typeof(args) !== 'undefined') {
-        request.params.args = args
+      request.params.args = args
     }
-    const result = await this.rpc.sendRequest(request)
-    if (result.hasOwnProperty('type') && result.type === 'pythonobject') {
-      return new ObjectWrapper(this.rpc, result.reference)
-    }
-    else {
-      return result
-    }
+    return this.rpc.sendRequest(request).then(result => {
+      if (result.hasOwnProperty('type') && result.type === 'pythonobject') {
+        return new ObjectWrapper(this.rpc, result.reference)
+      }
+      else {
+        return result
+      }
+    })
   }
 
-  async getattr(attribute_name, force_reference) {
+  getattr(attribute_name, force_reference) {
     const request = {
       "jsonrpc": "2.0",
       "method": '__bridge.getattr',
@@ -116,10 +116,10 @@ class ObjectWrapper {
 	'force_reference': force_reference,
       },
     }
-    return await this.rpc.sendRequest(request)
+    return this.rpc.sendRequest(request)
   }
 
-  async setattr(attribute_name, value) {
+  setattr(attribute_name, value) {
     const request = {
       "jsonrpc": "2.0",
       "method": '__bridge.setattr',
@@ -127,7 +127,7 @@ class ObjectWrapper {
         'args': [this.reference, attribute_name, value],
       },
     }
-    await this.rpc.sendRequest(request)
+    return this.rpc.sendRequest(request)
   }
 }
 
