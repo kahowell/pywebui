@@ -54,10 +54,9 @@ public class PyWebUI extends CordovaPlugin {
         responseFifoPath = androidDataDir + "/pywebui.response.fifo";
         try {
             for (String fifoPath : new String[]{requestFifoPath, responseFifoPath}) {
-                if (new File(fifoPath).exists()) {
-                    new File(fifoPath).delete();
+                if (!(new File(fifoPath).exists())) {
+                    Os.mkfifo(fifoPath, OsConstants.S_IRWXU);
                 }
-                Os.mkfifo(fifoPath, OsConstants.S_IRWXU);
             }
         } catch (ErrnoException e) {
             throw new RuntimeException(e);

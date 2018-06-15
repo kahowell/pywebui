@@ -78,7 +78,7 @@ class CordovaRpcTransport {
   }
 
   on_ready(func) {
-    document.addEventListener('deviceready', func, false);
+    document.addEventListener('deviceready', func, false)
   }
 }
 
