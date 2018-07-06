@@ -8,7 +8,10 @@ class ElectronRpcTransport {
 
     ipcRenderer.on('ipcresponse', (event, response) => {
       const [resolve, reject] = this.pending[response.id]
-        if (response.hasOwnProperty('error')) {
+        if (response === null) {
+          resolve(response)
+        }
+        else if (response.hasOwnProperty('error')) {
           reject(response.error)
         }
         else {
@@ -39,7 +42,10 @@ class RestRpcTransport {
       const request = new XMLHttpRequest()
       request.addEventListener('load', function() {
         const response = JSON.parse(this.responseText)
-        if (response.hasOwnProperty('error')) {
+        if (response === null) {
+          resolve(response)
+        }
+        else if (response.hasOwnProperty('error')) {
           reject(response.error)
         }
         else {
@@ -68,8 +74,11 @@ class CordovaRpcTransport {
       window.cordova_pywebui_call(data, resolve, reject);
     }).then(responseText => {
       const response = JSON.parse(responseText);
-      if (response.hasOwnProperty('error')) {
-        throw response.error;
+      if (response === null) {
+        return response
+      }
+      else if (response.hasOwnProperty('error')) {
+        throw response.error
       }
       else {
         return response.result

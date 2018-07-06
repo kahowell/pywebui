@@ -1,4 +1,4 @@
-import Bridge from 'pywebui-bridge'
+import Bridge from 'pywebui'
 
 const bridge = new Bridge()
 bridge.on_ready(function() {
